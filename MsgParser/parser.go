@@ -11,33 +11,33 @@ const (
 	ACCEPT         = "accept"
 	MSG            = "msg"
 	DISCONNECT     = "disconnect"
-	INVALID_MSG    = "invalid message"
+	INVALID_MSG    = "invalid Message"
 	INVALID_TYPE   = "invalid type"
 )
 
-type message struct {
+type Message struct {
 	Type  string
 	Value string
 }
 
-func NewMessage(mType, mValue string) (message, error) {
+func NewMessage(mType, mValue string) (Message, error) {
 	if !ValidateType(mType) {
-		return message{Type: "", Value: ""}, errors.New(INVALID_TYPE)
+		return Message{Type: "", Value: ""}, errors.New(INVALID_TYPE)
 	}
-	return message{
+	return Message{
 		Type:  mType,
 		Value: mValue,
 	}, nil
 }
 
-func ParseMsg(msg []byte) (message, error) {
+func ParseMsg(msg []byte) (Message, error) {
 	str := strings.SplitN(string(msg), ":", 2)
 	if len(str) == 1 {
 		empytMsg, _ := NewMessage("", "")
 		return empytMsg, errors.New(INVALID_MSG)
 	}
-	message, err := NewMessage(str[0], str[1])
-	return message, err
+	Message, err := NewMessage(str[0], str[1])
+	return Message, err
 }
 
 func ValidateType(str string) bool {
@@ -49,6 +49,6 @@ func ValidateType(str string) bool {
 	}
 }
 
-func (m *message) ToBytes() []byte {
+func (m *Message) ToBytes() []byte {
 	return []byte(m.Type + ":" + m.Value)
 }

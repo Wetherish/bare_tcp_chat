@@ -20,8 +20,12 @@ func main() {
 	msg := ""
 	for {
 		fmt.Scanln(&msg)
+		exit := "/exit"
+		if msg == exit {
+		    fmt.Println("Good bye!")
+            break
+		}
 		conn.Write([]byte(msg))
 		fmt.Printf("you: %s\n", msg)
 	}
-	log.Println("Client connected to the server: ")
 }

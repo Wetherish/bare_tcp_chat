@@ -1,6 +1,7 @@
 package main
 
 import (
+	msgparser "chat_server/MsgParser"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,20 @@ const (
 	PORT       = "8080"
 )
 
+func sendMsg(msg *msgparser.Message, conn net.Conn) {
+    conn.Write(msg.ToBytes())
+}
+
+func messageProcessor(msg *msgparser.Message, c *net.Conn) {
+	switch msg.Type {
+	case msgparser.ACCEPT:
+	case msgparser.RECONNECT:
+	case msgparser.NEW_CONNECTION:
+	case msgparser.MSG:
+	case msgparser.DISCONNECT:
+	}
+}
+
 func handleConnection(c net.Conn) {
 	defer c.Close()
 	buf := make([]byte, 1024)
@@ -19,13 +34,18 @@ func handleConnection(c net.Conn) {
 		num, err := c.Read(buf)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("connection lost")
-			} else{
+				log.Println("connection lost")
+			} else {
 				log.Fatalln(err)
 			}
 			return
 		}
 		data := buf[:num]
+		message, err := msgparser.ParseMsg(data)
+		println(message.Value)
+		if err != nil {
+			log.Println(err.Error())
+		}
 		fmt.Printf("received: %s\n", string(data))
 	}
 }
