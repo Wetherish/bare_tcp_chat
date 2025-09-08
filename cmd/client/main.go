@@ -50,23 +50,23 @@ func main() {
 	fmt.Print("Enter name: ")
 	scanner.Scan()
 	nickname := scanner.Text()
-	fmt.Println(nickname)
+
 	idRequest, err := msgparser.NewMessage(msgparser.ID_REQUEST, nickname)
 	if err != nil {
 		log.Fatalln("failed to create ID_REQUEST:", err)
 	}
 
 	network.SendMsg(idRequest, conn)
-	idCh := make(chan string)
+	idCh := make(chan msgparser.Message)
 
 	fmt.Println("Connecting to server ...")
 	go network.ReadFromConnection(conn, idCh)
 	id := <-idCh
-	log.Println("DEBUG log: ", id)
-	idMsg, err := msgparser.ParseMsg([]byte(id))
+
 	if err != nil {
 		log.Println(err.Error())
 	}
-	fmt.Println("Connected with ID:", idMsg.Value)
+
+	fmt.Println("Connected with ID:", id.Value)
 	inputMessage(scanner, conn)
 }

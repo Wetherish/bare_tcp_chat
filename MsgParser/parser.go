@@ -6,14 +6,11 @@ import (
 )
 
 const (
-	NEW_CONNECTION = "new"
-	RECONNECT      = "reconnect"
-	ACCEPT         = "accept"
-	MSG            = "msg"
-	DISCONNECT     = "disconnect"
-	ID_REQUEST     = "id"
-	INVALID_MSG    = "invalid Message"
-	INVALID_TYPE   = "invalid type"
+	ACCEPT       = "accept"
+	MSG          = "msg"
+	ID_REQUEST   = "id"
+	INVALID_MSG  = "invalid Message"
+	INVALID_TYPE = "invalid type"
 )
 
 type Message struct {
@@ -42,7 +39,7 @@ func ParseMsg(msg []byte) (Message, error) {
 
 func ValidateType(str string) bool {
 	switch str {
-	case NEW_CONNECTION, RECONNECT, MSG, DISCONNECT, ID_REQUEST, ACCEPT:
+	case ID_REQUEST, MSG, ACCEPT:
 		return true
 	default:
 		return false

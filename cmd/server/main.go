@@ -1,6 +1,7 @@
 package main
 
 import (
+	msgparser "chat_server/MsgParser"
 	network "chat_server/Network"
 	"log"
 	"net"
@@ -19,7 +20,6 @@ func main() {
 	defer ln.Close()
 
 	log.Printf("server is listening on %s", ln.Addr().String())
-
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -29,15 +29,16 @@ func main() {
 
 		go func(c net.Conn) {
 			defer c.Close()
-			result := make(chan string)
+			result := make(chan msgparser.Message)
 			defer close(result)
 
 			go network.ReadFromConnection(c, result)
 
 			for msg := range result {
-				if msg == "" {
+				if msg.Value == "" {
 					continue
 				}
+				network.ServerMessageProcessor(&msg, conn)
 				log.Printf("received from %s: %s", c.RemoteAddr(), msg)
 			}
 

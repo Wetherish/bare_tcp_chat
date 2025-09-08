@@ -11,7 +11,7 @@ func SendMsg(msg msgparser.Message, conn net.Conn) {
 	conn.Write(msg.ToBytes())
 }
 
-func ReadFromConnection(conn net.Conn, results chan<- string) {
+func ReadFromConnection(conn net.Conn, results chan<- msgparser.Message) {
 	defer conn.Close()
 	buf := make([]byte, 1024)
 	for {
@@ -20,13 +20,12 @@ func ReadFromConnection(conn net.Conn, results chan<- string) {
 			break
 		}
 		msg := buf[:n]
-		processedMsg, err := msgparser.ParseMsg(buf)
+		processedMsg, err := msgparser.ParseMsg(msg)
 		if err != nil {
 			log.Println("Error parsing message:", err)
 			continue
 		}
-		messageProcessor(&processedMsg, conn)
-		results <- string(msg)
+		results <- processedMsg
 	}
 }
 
@@ -38,18 +37,14 @@ func assignID(username string) int {
 	return id
 }
 
-func messageProcessor(msg *msgparser.Message, conn net.Conn) {
+func ServerMessageProcessor(msg *msgparser.Message, conn net.Conn) {
 	switch msg.Type {
-	case msgparser.ACCEPT:
 	case msgparser.ID_REQUEST:
-		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, fmt.Sprintf("%d", assignID(msg.Value)))
+		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, fmt.Sprint(assignID(msg.Value)))
 		if err != nil {
 			log.Println(err)
 		}
 		SendMsg(responseMsg, conn)
-	case msgparser.RECONNECT:
-	case msgparser.NEW_CONNECTION:
-	case msgparser.MSG:
-	case msgparser.DISCONNECT:
+	default:
 	}
 }
