@@ -20,6 +20,9 @@ func main() {
 	defer ln.Close()
 
 	log.Printf("server is listening on %s", ln.Addr().String())
+	rooms := network.NewRooms()
+	rooms.CreateRoom(1, "Default")
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -28,7 +31,9 @@ func main() {
 		}
 
 		go func(c net.Conn) {
-			defer c.Close()
+			defer func() {
+				c.Close()
+			}()
 			result := make(chan msgparser.Message)
 			defer close(result)
 
@@ -38,10 +43,8 @@ func main() {
 				if msg.Value == "" {
 					continue
 				}
-				network.ServerMessageProcessor(&msg, conn)
-				log.Printf("received from %s: %s", c.RemoteAddr(), msg)
+				network.ServerMessageProcessor(&msg, &rooms, conn)
 			}
-
 		}(conn)
 	}
 }

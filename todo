@@ -1,0 +1,5 @@
+Add broadcasting of messages.
+Add handling for receiving messages.
+Add proper ID generation.
+Introduce chat rooms.
+Client command managment

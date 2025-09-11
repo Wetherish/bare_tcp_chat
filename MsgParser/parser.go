@@ -2,44 +2,93 @@ package msgparser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
 const (
 	ACCEPT       = "accept"
 	MSG          = "msg"
+	JOIN         = "join"
+	LEAVE        = "leave"
+	LIST_ROOMS   = "list_rooms"
 	ID_REQUEST   = "id"
-	INVALID_MSG  = "invalid Message"
+	INVALID_MSG  = "invalid message"
 	INVALID_TYPE = "invalid type"
 )
 
 type Message struct {
-	Type  string
-	Value string
+	UserId uint32
+	Type   string
+	Value  string
+	RoomId uint32
 }
 
-func NewMessage(mType, mValue string) (Message, error) {
+func NewMessage(mType, mValue string, id, roomId uint32) (Message, error) {
 	if !ValidateType(mType) {
-		return Message{Type: "", Value: ""}, fmt.Errorf("%s: %s", INVALID_TYPE, mType)
+		return Message{}, fmt.Errorf("%s: %s", INVALID_TYPE, mType)
 	}
 	return Message{
-		Type:  mType,
-		Value: mValue,
+		UserId: id,
+		Type:   mType,
+		Value:  mValue,
+		RoomId: roomId,
 	}, nil
 }
 
 func ParseMsg(msg []byte) (Message, error) {
-	str := strings.SplitN(string(msg), ":", 2)
-	if len(str) == 1 {
-		return Message{}, fmt.Errorf("invalid message format: missing ':' separator in '%s'", string(msg))
+	parts := strings.SplitN(string(msg), ":", 4)
+
+	var mType, mValue string
+	var id, roomId uint32
+	var err error
+
+	switch len(parts) {
+	case 1:
+		mType = parts[0]
+	case 2:
+		mType = parts[0]
+		mValue = parts[1]
+	case 3:
+		mType = parts[0]
+		mValue = parts[1]
+		if parts[2] != "" {
+			var parsed int64
+			parsed, err = strconv.ParseInt(parts[2], 10, 32)
+			if err != nil {
+				return Message{}, fmt.Errorf("invalid user id: %v", err)
+			}
+			id = uint32(parsed)
+		}
+	case 4:
+		mType = parts[0]
+		mValue = parts[1]
+		if parts[2] != "" {
+			var parsed int64
+			parsed, err = strconv.ParseInt(parts[2], 10, 32)
+			if err != nil {
+				return Message{}, fmt.Errorf("invalid user id: %v", err)
+			}
+			id = uint32(parsed)
+		}
+		if parts[3] != "" {
+			var parsedRoom int64
+			parsedRoom, err = strconv.ParseInt(parts[3], 10, 32)
+			if err != nil {
+				return Message{}, fmt.Errorf("invalid room id: %v", err)
+			}
+			roomId = uint32(parsedRoom)
+		}
+	default:
+		return Message{}, fmt.Errorf("invalid message format: %s", string(msg))
 	}
-	Message, err := NewMessage(str[0], str[1])
-	return Message, err
+
+	return NewMessage(mType, mValue, id, roomId)
 }
 
 func ValidateType(str string) bool {
 	switch str {
-	case ID_REQUEST, MSG, ACCEPT:
+	case ID_REQUEST, MSG, ACCEPT, JOIN, LEAVE, LIST_ROOMS:
 		return true
 	default:
 		return false
@@ -47,5 +96,14 @@ func ValidateType(str string) bool {
 }
 
 func (m Message) ToBytes() []byte {
-	return []byte(m.Type + ":" + m.Value)
+	switch {
+	case m.Value == "" && m.UserId == 0 && m.RoomId == 0:
+		return []byte(m.Type)
+	case m.UserId == 0 && m.RoomId == 0:
+		return []byte(fmt.Sprintf("%s:%s", m.Type, m.Value))
+	case m.RoomId == 0:
+		return []byte(fmt.Sprintf("%s:%s:%d", m.Type, m.Value, m.UserId))
+	default:
+		return []byte(fmt.Sprintf("%s:%s:%d:%d", m.Type, m.Value, m.UserId, m.RoomId))
+	}
 }
