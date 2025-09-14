@@ -37,7 +37,7 @@ func (r *Room) RemoveConnection(id uint32) {
 	delete(r.Connections, id)
 }
 
-func (r *Room) BroadcastMessage(message string, senderId uint32) {
+func (r *Room) BroadcastMessage(message []byte, senderId uint32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for id, conn := range r.Connections {

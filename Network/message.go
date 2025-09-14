@@ -2,7 +2,6 @@ package network
 
 import (
 	msgparser "chat_server/MsgParser"
-	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -40,8 +39,9 @@ func assignID(username string) uint32 {
 func ServerMessageProcessor(msg *msgparser.Message, rooms *Rooms, conn net.Conn) {
 	switch msg.Type {
 	case msgparser.ID_REQUEST:
-		id := assignID(msg.Value)
-		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, fmt.Sprint(id), id, 0)
+		id := assignID(string(msg.Content))
+		idBytes := []byte(strconv.FormatUint(uint64(id), 10))
+		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, idBytes, id, 0)
 		if err != nil {
 			log.Println(err)
 		}
@@ -49,20 +49,20 @@ func ServerMessageProcessor(msg *msgparser.Message, rooms *Rooms, conn net.Conn)
 		SendMsg(responseMsg, conn)
 
 	case msgparser.JOIN:
-		roomID, err := strconv.Atoi(msg.Value)
+		roomID, err := strconv.Atoi(string(msg.Content))
 		if err != nil {
 			log.Println("Error converting room ID:", err)
 			return
 		}
 		rooms.JoinRoom(uint32(roomID), msg.UserId, conn)
-		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, "joined_room", 0, uint32(roomID))
+		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, []byte("joined_room"), 0, uint32(roomID))
 		if err != nil {
 			log.Println(err)
 		}
 		SendMsg(responseMsg, conn)
 
 	case msgparser.LIST_ROOMS:
-		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, string(rooms.ListRooms()), 0, 0)
+		responseMsg, err := msgparser.NewMessage(msgparser.ACCEPT, rooms.ListRooms(), 0, 0)
 		if err != nil {
 			log.Println(err)
 			return
@@ -71,9 +71,9 @@ func ServerMessageProcessor(msg *msgparser.Message, rooms *Rooms, conn net.Conn)
 		SendMsg(responseMsg, conn)
 	case msgparser.MSG:
 		if msg.RoomId == 0 {
-			log.Println("MSG Sended into nowhere: ", msg.Value)
+			log.Println("MSG Sended into nowhere: ", msg.Content)
 		} else {
-			rooms.Rooms[msg.RoomId].BroadcastMessage(msg.Value, msg.UserId)
+			rooms.Rooms[msg.RoomId].BroadcastMessage(msg.Content, msg.UserId)
 		}
 	default:
 	}

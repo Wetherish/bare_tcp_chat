@@ -64,7 +64,7 @@ func sendMessage(input string, conn net.Conn, user network.User) bool {
 		content = input
 	}
 
-	msg, err := msgparser.NewMessage(msgType, content, user.Id, roomID)
+	msg, err := msgparser.NewMessage(msgType, []byte(content), user.Id, roomID)
 	if err != nil {
 		log.Printf("Error creating message: %v", err)
 		return false
@@ -85,7 +85,7 @@ func handleConnection() (net.Conn, network.User, error) {
 	scanner.Scan()
 	nickname := scanner.Text()
 
-	idRequest, err := msgparser.NewMessage(msgparser.ID_REQUEST, nickname, 0, 0)
+	idRequest, err := msgparser.NewMessage(msgparser.ID_REQUEST, []byte(nickname), 0, 0)
 	if err != nil {
 		conn.Close()
 		return nil, network.User{}, fmt.Errorf("failed to create ID request: %v", err)
@@ -104,11 +104,11 @@ func handleConnection() (net.Conn, network.User, error) {
 
 	go func() {
 		for msg := range msgCh {
-			if msg.Type == msgparser.ACCEPT && msg.Value == "joined_room" {
+			if msg.Type == msgparser.ACCEPT && string(msg.Content) == "joined_room" {
 				roomID = msg.RoomId
 				fmt.Println("You joined room nr: ", msg.RoomId)
 			} else {
-				fmt.Println(msg.UserId, ": ", msg.Value)
+				fmt.Println(msg.UserId, ": ", string(msg.Content))
 			}
 		}
 	}()

@@ -1,6 +1,8 @@
 package msgparser
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -18,72 +20,50 @@ const (
 )
 
 type Message struct {
-	UserId uint32
-	Type   string
-	Value  string
-	RoomId uint32
+	UserId  uint32
+	Type    string
+	Content []byte
+	RoomId  uint32
 }
 
-func NewMessage(mType, mValue string, id, roomId uint32) (Message, error) {
-	if !ValidateType(mType) {
-		return Message{}, fmt.Errorf("%s: %s", INVALID_TYPE, mType)
+func NewMessage(msg_type string, content []byte, id, roomId uint32) (Message, error) {
+	if !ValidateType(msg_type) {
+		return Message{}, fmt.Errorf("%s: %s", INVALID_TYPE, msg_type)
 	}
 	return Message{
-		UserId: id,
-		Type:   mType,
-		Value:  mValue,
-		RoomId: roomId,
+		Type:    msg_type,
+		UserId:  id,
+		RoomId:  roomId,
+		Content: content,
 	}, nil
 }
 
 func ParseMsg(msg []byte) (Message, error) {
-	parts := strings.SplitN(string(msg), ":", 4)
+	string_msg := string(msg)
+	elems := strings.SplitN(string_msg, ":", 4)
 
-	var mType, mValue string
-	var id, roomId uint32
-	var err error
-
-	switch len(parts) {
-	case 1:
-		mType = parts[0]
-	case 2:
-		mType = parts[0]
-		mValue = parts[1]
-	case 3:
-		mType = parts[0]
-		mValue = parts[1]
-		if parts[2] != "" {
-			var parsed int64
-			parsed, err = strconv.ParseInt(parts[2], 10, 32)
-			if err != nil {
-				return Message{}, fmt.Errorf("invalid user id: %v", err)
-			}
-			id = uint32(parsed)
-		}
-	case 4:
-		mType = parts[0]
-		mValue = parts[1]
-		if parts[2] != "" {
-			var parsed int64
-			parsed, err = strconv.ParseInt(parts[2], 10, 32)
-			if err != nil {
-				return Message{}, fmt.Errorf("invalid user id: %v", err)
-			}
-			id = uint32(parsed)
-		}
-		if parts[3] != "" {
-			var parsedRoom int64
-			parsedRoom, err = strconv.ParseInt(parts[3], 10, 32)
-			if err != nil {
-				return Message{}, fmt.Errorf("invalid room id: %v", err)
-			}
-			roomId = uint32(parsedRoom)
-		}
-	default:
-		return Message{}, fmt.Errorf("invalid message format: %s", string(msg))
+	if len(elems) < 4 {
+		return Message{}, errors.New("invalid message format")
 	}
 
-	return NewMessage(mType, mValue, id, roomId)
+	msg_type := elems[0]
+	if !ValidateType(msg_type) {
+		return Message{}, errors.New(INVALID_TYPE)
+	}
+
+	id, err := strconv.Atoi(elems[1])
+	if err != nil {
+		return Message{}, errors.New("invalid Id")
+	}
+	roomID, err := strconv.Atoi(elems[2])
+	if err != nil {
+		return Message{}, errors.New("invalid Id")
+	}
+
+	content := []byte(elems[3])
+
+	return Message{UserId: uint32(id), Type: msg_type, RoomId: uint32(roomID), Content: content}, nil
+
 }
 
 func ValidateType(str string) bool {
@@ -96,14 +76,8 @@ func ValidateType(str string) bool {
 }
 
 func (m Message) ToBytes() []byte {
-	switch {
-	case m.Value == "" && m.UserId == 0 && m.RoomId == 0:
-		return []byte(m.Type)
-	case m.UserId == 0 && m.RoomId == 0:
-		return []byte(fmt.Sprintf("%s:%s", m.Type, m.Value))
-	case m.RoomId == 0:
-		return []byte(fmt.Sprintf("%s:%s:%d", m.Type, m.Value, m.UserId))
-	default:
-		return []byte(fmt.Sprintf("%s:%s:%d:%d", m.Type, m.Value, m.UserId, m.RoomId))
-	}
+	var buffor bytes.Buffer
+	buffor.WriteString(fmt.Sprintf("%s:%d:%d:", m.Type, m.UserId, m.RoomId))
+	buffor.Write(m.Content)
+	return buffor.Bytes()
 }

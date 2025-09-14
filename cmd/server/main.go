@@ -40,7 +40,7 @@ func main() {
 			go network.ReadFromConnection(c, result)
 
 			for msg := range result {
-				if msg.Value == "" {
+				if string(msg.Content) == "" {
 					continue
 				}
 				network.ServerMessageProcessor(&msg, &rooms, conn)
