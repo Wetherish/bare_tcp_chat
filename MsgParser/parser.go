@@ -15,6 +15,7 @@ const (
 	LEAVE        = "leave"
 	LIST_ROOMS   = "list_rooms"
 	ID_REQUEST   = "id"
+	FILE         = "file"
 	INVALID_MSG  = "invalid message"
 	INVALID_TYPE = "invalid type"
 )
@@ -68,7 +69,7 @@ func ParseMsg(msg []byte) (Message, error) {
 
 func ValidateType(str string) bool {
 	switch str {
-	case ID_REQUEST, MSG, ACCEPT, JOIN, LEAVE, LIST_ROOMS:
+	case ID_REQUEST, MSG, ACCEPT, JOIN, LEAVE, LIST_ROOMS, FILE:
 		return true
 	default:
 		return false

@@ -37,12 +37,12 @@ func (r *Room) RemoveConnection(id uint32) {
 	delete(r.Connections, id)
 }
 
-func (r *Room) BroadcastMessage(message []byte, senderId uint32) {
+func (r *Room) BroadcastMessage(msgType string, message []byte, senderId uint32) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for id, conn := range r.Connections {
 		if id != senderId {
-			sendMsg, err := msgparser.NewMessage(msgparser.MSG, message, senderId, r.Id)
+			sendMsg, err := msgparser.NewMessage(msgType, message, senderId, r.Id)
 			if err != nil {
 				log.Println(err)
 				continue
