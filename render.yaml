@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: chat-server
+    env: docker
+    plan: free
+    branch: main
+    envVars:
+      - key: PORT
+        value: 8080

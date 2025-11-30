@@ -26,9 +26,17 @@ import (
 	"github.com/gopxl/beep/v2/wav"
 )
 
-const (
-	SERVER_ADDRESS = "127.0.0.1:8080"
+var (
+	SERVER_ADDRESS = getEnv("SERVER_ADDRESS", "bare-tcp-chat.onrender.com:8080")
 )
+
+func getEnv(key, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
 
 var (
 	senderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
