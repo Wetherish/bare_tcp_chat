@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	IP_ADDRESS = getEnv("IP_ADDRESS", "127.0.0.1")
+	IP_ADDRESS = getEnv("IP_ADDRESS", "0.0.0.0")
 	PORT       = getEnv("PORT", "8080")
 )
 
