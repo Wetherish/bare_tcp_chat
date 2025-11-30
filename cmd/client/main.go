@@ -8,6 +8,8 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -16,6 +18,12 @@ import (
 
 	msgparser "chat_server/MsgParser"
 	network "chat_server/Network"
+
+	"github.com/gopxl/beep/v2"
+	"github.com/gopxl/beep/v2/mp3"
+	"github.com/gopxl/beep/v2/speaker"
+	"github.com/gopxl/beep/v2/vorbis"
+	"github.com/gopxl/beep/v2/wav"
 )
 
 const (
@@ -150,6 +158,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					displayMsg = errStyle.Render(fmt.Sprintf("Failed to save file %s: %v", filename, err))
 				} else {
 					displayMsg = fmt.Sprintf("Received file from %d: %s (saved as received_%s)", msg.UserId, filename, filename)
+
+					// Check if audio and play
+					if isAudioFile(filename) {
+						go playAudio("received_" + filename)
+					}
 				}
 			} else {
 				displayMsg = fmt.Sprintf("Received invalid file format from %d", msg.UserId)
@@ -321,4 +334,62 @@ func main() {
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func isAudioFile(filename string) bool {
+	ext := strings.ToLower(filename[strings.LastIndex(filename, ".")+1:])
+	return ext == "mp3" || ext == "wav" || ext == "ogg" || ext == "flac"
+}
+
+func playAudio(filename string) {
+	f, err := os.Open(filename)
+	if err != nil {
+		log.Printf("Failed to open audio file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	var streamer beep.StreamSeekCloser
+	var format beep.Format
+
+	ext := strings.ToLower(filename[strings.LastIndex(filename, ".")+1:])
+	switch ext {
+	case "mp3":
+		streamer, format, err = mp3.Decode(f)
+	case "wav":
+		streamer, format, err = wav.Decode(f)
+	case "ogg":
+		streamer, format, err = vorbis.Decode(f)
+	default:
+		return
+	}
+
+	if err != nil {
+		log.Printf("Failed to decode audio file: %v", err)
+		return
+	}
+	defer streamer.Close()
+
+	// Initialize speaker if not already done.
+	// Note: beep.Init is not idempotent and might return error if already initialized?
+	// Actually looking at docs, Init replaces the stream.
+	// But it's better to Init once. For this simple client, we can try to Init and ignore specific errors or just Init every time (might be glitchy).
+	// Let's use a sync.Once for speaker init.
+
+	initSpeaker(format.SampleRate)
+
+	done := make(chan bool)
+	speaker.Play(beep.Seq(streamer, beep.Callback(func() {
+		done <- true
+	})))
+
+	<-done
+}
+
+var speakerInitOnce sync.Once
+
+func initSpeaker(sr beep.SampleRate) {
+	speakerInitOnce.Do(func() {
+		speaker.Init(sr, sr.N(time.Second/10))
+	})
 }
