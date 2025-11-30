@@ -1,0 +1,43 @@
+name: Release Client
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
+      - name: Build Linux
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o client-linux ./cmd/client/main.go
+
+      - name: Build Windows
+        run: |
+          GOOS=windows GOARCH=amd64 go build -o client-windows.exe ./cmd/client/main.go
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            client-linux
+            client-windows.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
