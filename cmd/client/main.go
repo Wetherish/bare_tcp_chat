@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	SERVER_ADDRESS = getEnv("SERVER_ADDRESS", "bare-tcp-chat.onrender.com:8080")
+	SERVER_ADDRESS = getEnv("SERVER_ADDRESS", "yamabiko.proxy.rlwy.net:40424")
 )
 
 func getEnv(key, fallback string) string {
