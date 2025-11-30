@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	msgparser "chat_server/MsgParser"
+	network "chat_server/Network"
 	"log"
 	"net"
 )
@@ -12,36 +12,39 @@ const (
 	PORT       = "8080"
 )
 
-func handleConnection(c net.Conn) {
-	defer c.Close()
-	buf := make([]byte, 1024)
-	for {
-		num, err := c.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				fmt.Println("connection lost")
-			} else{
-				log.Fatalln(err)
-			}
-			return
-		}
-		data := buf[:num]
-		fmt.Printf("received: %s\n", string(data))
-	}
-}
-
 func main() {
 	ln, err := net.Listen("tcp", IP_ADDRESS+":"+PORT)
 	if err != nil {
 		log.Panic(err)
 	}
 	defer ln.Close()
+
 	log.Printf("server is listening on %s", ln.Addr().String())
+	rooms := network.NewRooms()
+	rooms.CreateRoom(1, "Default")
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("accept error: %v", err)
+			continue
 		}
-		handleConnection(conn)
+
+		go func(c net.Conn) {
+			defer func() {
+				c.Close()
+			}()
+			result := make(chan msgparser.Message)
+			defer close(result)
+
+			go network.ReadFromConnection(c, result)
+
+			for msg := range result {
+				if string(msg.Content) == "" {
+					continue
+				}
+				network.ServerMessageProcessor(&msg, &rooms, conn)
+			}
+		}(conn)
 	}
 }
