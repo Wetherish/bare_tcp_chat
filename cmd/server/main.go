@@ -5,12 +5,21 @@ import (
 	network "chat_server/Network"
 	"log"
 	"net"
+	"os"
 )
 
-const (
-	IP_ADDRESS = "127.0.0.1"
-	PORT       = "8080"
+var (
+	IP_ADDRESS = getEnv("IP_ADDRESS", "127.0.0.1")
+	PORT       = getEnv("PORT", "8080")
 )
+
+func getEnv(key, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
 
 func main() {
 	ln, err := net.Listen("tcp", IP_ADDRESS+":"+PORT)
